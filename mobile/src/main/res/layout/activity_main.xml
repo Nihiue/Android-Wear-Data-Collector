@@ -1,29 +1,50 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingLeft="40dp"
-    android:paddingRight="40dp"
-    android:paddingTop="30dp"
     android:orientation="vertical"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:paddingTop="10dp"
     android:paddingBottom="@dimen/activity_vertical_margin"
     tools:context=".MainActivity">
-
-    <TextView android:text="Android Wear Sensor Data Collector" android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
-
-    <Button
-        android:onClick="onSendStartMsg"
-        android:id="@+id/start_button"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Start" />
-    <Button
-        android:onClick="onSendStopMsg"
-        android:id="@+id/stop_button"
+        android:orientation="horizontal">
+        <Button
+            android:layout_weight="1"
+            android:onClick="onSendStartMsg"
+            android:id="@+id/start_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="5dp"
+            android:text="Start" />
+        <Button
+            android:layout_weight="1"
+            android:layout_marginLeft="5dp"
+            android:onClick="onSendStopMsg"
+            android:id="@+id/stop_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Stop" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_marginTop="10dp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Stop" />
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:id="@+id/scrollView" >
+        <LinearLayout android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <TextView
 
-
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No Data Yet"
+                android:id="@+id/data_text"
+                android:layout_gravity="center_horizontal"
+                />
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>
