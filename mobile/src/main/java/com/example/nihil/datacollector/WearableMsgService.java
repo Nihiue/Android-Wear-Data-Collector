@@ -1,7 +1,7 @@
 package com.example.nihil.datacollector;
 
 /**
- * Created by Nihil on 1/20/2015.
+ * Created by Nihil on 1/10/2015.
  */
 
         import android.app.IntentService;

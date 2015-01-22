@@ -1,6 +1,5 @@
 package com.example.nihil.datacollector;
 
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.util.Log;
 
@@ -92,16 +91,19 @@ public class WearableDataService extends WearableListenerService{
 
         json.put("packTime", data.getLong("packTime"));
         json.put("deviceID", data.getString("deviceID"));
+        json.put("packSize", data.getDataMapArrayList("dataPackage").size());
         ArrayList<DataMap> pack= data.getDataMapArrayList("dataPackage");
         JSONArray itemArray=new JSONArray();
         for(int i=0;i<pack.size();i++){
             JSONObject item=new JSONObject();
             item.put("timestamp",pack.get(i).getLong("timestamp"));
+            item.put("cycleGap",pack.get(i).getLong("cycleGap"));
             ts=new Timestamp(pack.get(i).getLong("timestamp"));
-            dispStr+=("==============================\n"+"Timestamp"+"\n "+dfmt.format(ts)+"\n\n");
+            dispStr+=("==============================\n"+"Timestamp"+"\n "+dfmt.format(ts)+"\n");
+            dispStr+=("Cycle Gap"+"\n "+pack.get(i).getLong("cycleGap")+"\n\n");
             Set<String> keys=pack.get(i).keySet();
             for (String key : keys) {
-                if(key.equals("timestamp")){
+                if(key.equals("timestamp")||key.equals("cycleGap")){
                    continue;
                 }
                 JSONArray valueArray=new JSONArray();

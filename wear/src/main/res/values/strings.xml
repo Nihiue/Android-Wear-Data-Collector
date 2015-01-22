@@ -2,7 +2,7 @@
 <resources>
 
     <string name="app_name">Data Collector</string>
-    <string name="hello_round">Sensor Data Collector</string>
-    <string name="hello_square">Sensor Data Collector</string>
+    <string name="hello_round">Sensor Data Collector.</string>
+    <string name="hello_square">Sensor Data Collector.</string>
 
 </resources>

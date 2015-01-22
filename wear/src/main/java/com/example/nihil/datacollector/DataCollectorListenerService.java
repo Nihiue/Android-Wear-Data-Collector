@@ -32,18 +32,19 @@ public class DataCollectorListenerService extends WearableListenerService implem
     private static final String TAG = "DataCollectorListenerService";
     private static final String START_COLLECT_PATH = "/start-collect-data";
     private static final String STOP_COLLECT_PATH = "/stop-collect-data";
-    private static final String SENSOR_DATA_PATH = "/current-sensor-data";
-    private static final int CYCLE_WINDOW=3000;
-    private static final int BUFFER_SIZE=10;
-    private  GoogleApiClient mGoogleApiClient;
-    private  SensorManager sensorManager;
-    private  PowerManager powerManager;
-    private  PowerManager.WakeLock wakeLock;
-    private  SyncBuffer mySyncBuffer;
-    private  DataMap currentSensorData;
-    private static boolean isCollecting=false;
-
+    private static GoogleApiClient mGoogleApiClient;
+    private static SensorManager sensorManager;
+    private static PowerManager powerManager;
+    private static PowerManager.WakeLock wakeLock;
+    private static SyncBuffer mSyncBuffer;
+    private static CycleManager mCycleManager;
+    private static boolean isCollecting;
+    static {
+       isCollecting=false;
+    }
     private class SyncBuffer{
+        private static final String SENSOR_DATA_PATH = "/current-sensor-data";
+        private static final int BUFFER_SIZE=10;
         private ArrayList<DataMap> dataBuffer;
         public void clear(){
             dataBuffer=new ArrayList<DataMap>();
@@ -56,6 +57,10 @@ public class DataCollectorListenerService extends WearableListenerService implem
                 this.clear();
             }
         }
+        public void flush(){
+            this.doSync();
+            this.clear();
+        }
         public void doSync(){
             long currentTime=System.currentTimeMillis();
             PutDataMapRequest mapRequest = PutDataMapRequest.create(SENSOR_DATA_PATH+"/"+String.valueOf(currentTime));
@@ -67,18 +72,52 @@ public class DataCollectorListenerService extends WearableListenerService implem
             Log.d(TAG, "syncBufferSent: "+SENSOR_DATA_PATH+"/"+String.valueOf(currentTime));
         }
     }
+
+    private class CycleManager{
+        private static final int CYCLE_WINDOW =3000;
+        private DataMap cycleData;
+        public void startNewCycle(){
+            cycleData=new DataMap();
+            cycleData.putLong("timestamp",System.currentTimeMillis());
+        }
+        public void onData(SensorEvent event){
+            String key = event.sensor.getName();
+            float[] values = event.values;
+            Log.d(TAG, "newReading: " + key);
+            cycleData.putFloatArray(key, values);
+            long gap=System.currentTimeMillis()-cycleData.getLong("timestamp");
+            if(gap>CYCLE_WINDOW){
+                cycleData.putLong("cycleGap",gap);
+                mSyncBuffer.insert(cycleData);
+                this.startNewCycle();
+            }
+        }
+    }
     @Override
     public void onCreate() {
         super.onCreate();
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(Wearable.API)
-                .build();
-        mGoogleApiClient.connect();
-        sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                TAG);
-
+        if(mGoogleApiClient==null) {
+            mGoogleApiClient = new GoogleApiClient.Builder(this)
+                    .addApi(Wearable.API)
+                    .build();
+            mGoogleApiClient.connect();
+        }
+        if(sensorManager==null){
+            sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+        }
+        if(powerManager==null){
+            powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        }
+        if(wakeLock==null){
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                    TAG);
+        }
+        if(mSyncBuffer==null){
+            mSyncBuffer=new SyncBuffer();
+        }
+        if(mCycleManager==null){
+            mCycleManager=new CycleManager();
+        }
     }
 
     @Override // SensorEventListener
@@ -96,14 +135,7 @@ public class DataCollectorListenerService extends WearableListenerService implem
         if(event.accuracy<sensorManager.SENSOR_STATUS_ACCURACY_MEDIUM){
             return;
         }
-        String key = event.sensor.getName();
-        float[] values = event.values;
-        Log.d(TAG, "newReading: " + key);
-        currentSensorData.putFloatArray(key, values);
-        if(System.currentTimeMillis()-currentSensorData.getLong("timestamp")>CYCLE_WINDOW){
-            mySyncBuffer.insert(currentSensorData);
-            startNewCycle();
-        }
+        mCycleManager.onData(event);
     }
 
     @Override
@@ -152,32 +184,27 @@ public class DataCollectorListenerService extends WearableListenerService implem
     }
 
     private void startSensorListeners() {
-        mySyncBuffer=new SyncBuffer();
         Log.d(TAG, "startSensorListeners");
         List<Sensor> availableSensorsList= sensorManager.getSensorList(Sensor.TYPE_ALL);
-        mySyncBuffer.clear();
-        startNewCycle();
         for (Sensor sensor : availableSensorsList ) {
             int type=sensor.getType();
             if(type==Sensor.TYPE_AMBIENT_TEMPERATURE||type==Sensor.TYPE_GYROSCOPE||type==Sensor.TYPE_MAGNETIC_FIELD||type==Sensor.TYPE_ROTATION_VECTOR||type==Sensor.TYPE_ACCELEROMETER){
                 sensorManager.registerListener(this, sensor, 2000000);
             }
         }
+        mCycleManager.startNewCycle();
+        mSyncBuffer.clear();
         isCollecting=true;
     }
 
     private void stopSensorListeners() {
         Log.d(TAG, "stopSensorListeners");
         sensorManager.unregisterListener(this);
-        mySyncBuffer=null;
-        currentSensorData=null;
+        mSyncBuffer.flush();
         isCollecting=false;
     }
 
-    private void startNewCycle(){
-        currentSensorData = new DataMap();
-        currentSensorData.putLong("timestamp",System.currentTimeMillis());
-    }
+
     private void sendMsgToPhone(String msg){
         NodeApi.GetConnectedNodesResult nodes =
                 Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).await();
@@ -186,20 +213,18 @@ public class DataCollectorListenerService extends WearableListenerService implem
         }
     }
 
-
-
     private void acquireWakeLock() {
-
         if(!wakeLock.isHeld()) {
             Log.d(TAG, "acquireWakeLock");
-            //wakeLock.acquire();
+            wakeLock.acquire();
         }
     }
 
     private void releaseWakeLock() {
         if(wakeLock.isHeld()) {
             Log.d(TAG, "releaseWakeLock");
-           // wakeLock.release();
+            wakeLock.release();
         }
     }
+
 }

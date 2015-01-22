@@ -49,33 +49,36 @@ public class MainActivity extends ActionBarActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_start) {
+            Intent service = new Intent(this, WearableMsgService.class);
+            Bundle bundle = new Bundle();
+            bundle.putString("MYMSG", START_COLLECT_PATH);
+            service.putExtras(bundle);
+            startService(service);
+            return true;
+        }
+       else if (id == R.id.action_stop) {
+            Intent service = new Intent(this, WearableMsgService.class);
+            Bundle bundle = new Bundle();
+            bundle.putString("MYMSG", STOP_COLLECT_PATH);
+            service.putExtras(bundle);
+            startService(service);
+            return true;
+        }
+       else if (id == R.id.action_clear) {
+            mDataTextView.setText("");
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
-    public void onSendStopMsg(View v){
-        Intent service = new Intent(this, WearableMsgService.class);
-        Bundle bundle = new Bundle();
-        bundle.putString("MYMSG", STOP_COLLECT_PATH);
-        service.putExtras(bundle);
-        startService(service);
-    }
-    public void onSendStartMsg(View v){
-        Intent service = new Intent(this, WearableMsgService.class);
-        Bundle bundle = new Bundle();
-        bundle.putString("MYMSG", START_COLLECT_PATH);
-        service.putExtras(bundle);
-        startService(service);
-    }
-    public class MessageReceiver extends BroadcastReceiver {
+     public class MessageReceiver extends BroadcastReceiver {
 
         @Override
         public void onReceive(Context context, Intent intent) {
             // TODO Auto-generated method stub
             if (intent.getAction().equals(BC_DATA)) {
-                mDataTextView.setText(intent.getStringExtra("data"));
+                mDataTextView.setText(mDataTextView.getText()+intent.getStringExtra("data")+"\n\n");
                 Toast.makeText(MainActivity.this, "New Data",Toast.LENGTH_SHORT).show();
             }
             if (intent.getAction().equals(BC_INFO)) {
