@@ -74,7 +74,7 @@ public class DataCollectorListenerService extends WearableListenerService implem
     }
 
     private class CycleManager{
-        private static final int CYCLE_WINDOW =10000;
+        private static final int CYCLE_WINDOW =20000;//20 secs
         private DataMap cycleData;
         public void startNewCycle(){
             cycleData=new DataMap();
@@ -193,7 +193,7 @@ public class DataCollectorListenerService extends WearableListenerService implem
                 sensorManager.registerListener(this, sensor, 2000000);
             }*/
             if(type==Sensor.TYPE_HEART_RATE||type==Sensor.TYPE_STEP_COUNTER||type==Sensor.TYPE_STEP_DETECTOR){
-                sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+                sensorManager.registerListener(this, sensor, 10000000);
             }
         }
         mCycleManager.startNewCycle();
