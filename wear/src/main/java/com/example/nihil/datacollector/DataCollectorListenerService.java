@@ -74,14 +74,14 @@ public class DataCollectorListenerService extends WearableListenerService implem
     }
 
     private class CycleManager{
-        private static final int CYCLE_WINDOW =3000;
+        private static final int CYCLE_WINDOW =10000;
         private DataMap cycleData;
         public void startNewCycle(){
             cycleData=new DataMap();
             cycleData.putLong("timestamp",System.currentTimeMillis());
         }
         public void onData(SensorEvent event){
-            String key = event.sensor.getName();
+            String key = event.sensor.getStringType();
             float[] values = event.values;
             Log.d(TAG, "newReading: " + key);
             cycleData.putFloatArray(key, values);
@@ -132,7 +132,8 @@ public class DataCollectorListenerService extends WearableListenerService implem
            Log.d(TAG,"unexpectedSensorEvent");
            return ;
         }
-        if(event.accuracy<sensorManager.SENSOR_STATUS_ACCURACY_MEDIUM){
+        if(event.accuracy==sensorManager.SENSOR_STATUS_NO_CONTACT||event.accuracy==sensorManager.SENSOR_STATUS_UNRELIABLE){
+            Log.d(TAG,"valueDiscarded:"+event.sensor.getStringType());
             return;
         }
         mCycleManager.onData(event);
@@ -188,8 +189,11 @@ public class DataCollectorListenerService extends WearableListenerService implem
         List<Sensor> availableSensorsList= sensorManager.getSensorList(Sensor.TYPE_ALL);
         for (Sensor sensor : availableSensorsList ) {
             int type=sensor.getType();
-            if(type==Sensor.TYPE_AMBIENT_TEMPERATURE||type==Sensor.TYPE_GYROSCOPE||type==Sensor.TYPE_MAGNETIC_FIELD||type==Sensor.TYPE_ROTATION_VECTOR||type==Sensor.TYPE_ACCELEROMETER){
+          /*  if(type==Sensor.TYPE_AMBIENT_TEMPERATURE||type==Sensor.TYPE_GYROSCOPE||type==Sensor.TYPE_MAGNETIC_FIELD||type==Sensor.TYPE_ROTATION_VECTOR||type==Sensor.TYPE_ACCELEROMETER||type==Sensor.TYPE_HEART_RATE||type==Sensor.TYPE_STEP_COUNTER){
                 sensorManager.registerListener(this, sensor, 2000000);
+            }*/
+            if(type==Sensor.TYPE_HEART_RATE||type==Sensor.TYPE_STEP_COUNTER||type==Sensor.TYPE_STEP_DETECTOR){
+                sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
             }
         }
         mCycleManager.startNewCycle();
