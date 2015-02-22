@@ -60,7 +60,7 @@ public class WearableDataService extends WearableListenerService{
         for (DataEvent event : events) {
             Uri uri = event.getDataItem().getUri();
             String path = uri.getPath();
-            if (path.indexOf(SENSOR_DATA_PATH)!=-1 && event.getType() == DataEvent.TYPE_CHANGED) {
+            if (path.contains(SENSOR_DATA_PATH) && event.getType() == DataEvent.TYPE_CHANGED) {
                 byte[] rawData = event.getDataItem().getData();
                 DataMap sensorData = DataMap.fromByteArray(rawData);
                 Log.d(TAG, "Recording new data item: " + path);
